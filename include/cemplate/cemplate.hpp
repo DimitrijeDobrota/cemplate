@@ -14,6 +14,8 @@ std::string nspace(const std::string& name);
 
 std::string nspace_close(const std::string& name);
 
+std::string ret(const std::string& val);
+
 struct param_t
 {
   std::string type;
@@ -22,7 +24,8 @@ struct param_t
 
 std::string func(const std::string& ret,
                  const std::string& name,
-                 std::vector<param_t> params);
+                 std::vector<param_t> params,
+                 bool delc = false);
 
 std::string func_close();
 
