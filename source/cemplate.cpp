@@ -5,6 +5,20 @@
 
 #include "cemplate/cemplate.hpp"
 
+namespace
+{
+
+void warning(const std::string& message, const std::string& addition)  // NOLINT
+{
+  std::cerr << "Warning: " << message;
+  if (!addition.empty()) {
+    std::cerr << " - " + addition;
+  }
+  std::cerr << '\n' << std::flush;
+}
+
+}  // namespace
+
 namespace cemplate
 {
 
@@ -28,9 +42,7 @@ std::string nspace(const std::string& name)
 
   if (stk.empty() || stk.top() != name) {
     if (seen.contains(name)) {
-      std::cerr << "Warning: nesting namespaces of the same name - " << name
-                << '\n'
-                << std::flush;
+      warning("nesting namespaces of the same name", name);
     }
 
     seen.insert(name);
@@ -78,9 +90,7 @@ std::string func(const std::string& name,
 
   if (last.empty()) {
     if (ret.empty()) {
-      std::cerr << "Warning: function should have a return type - " << name
-                << '\n'
-                << std::flush;
+      warning("function should have a return type", name);
     }
 
     last = name;
@@ -88,8 +98,7 @@ std::string func(const std::string& name,
   }
 
   if (last != name) {
-    std::cerr << "Warning: function is not closed - " << last << '\n'
-              << std::flush;
+    warning("function is not closed", last);
   }
 
   last.clear();
