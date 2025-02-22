@@ -1,17 +1,29 @@
 #pragma once
 
 #include <string>
+#include <vector>
 
-#include "cemplate/cemplate_export.hpp"
-
-class CEMPLATE_EXPORT exported_class
+namespace cemplate
 {
-public:
-  exported_class();
 
-  auto name() const -> char const*;
+std::string pragma_once();
 
-private:
-  CEMPLATE_SUPPRESS_C4251
-  std::string m_name;
+std::string include(const std::string& header, bool local = false);
+
+std::string nspace(const std::string& name);
+
+std::string nspace_close(const std::string& name);
+
+struct param_t
+{
+  std::string type;
+  std::string name;
 };
+
+std::string func(const std::string& ret,
+                 const std::string& name,
+                 std::vector<param_t> params);
+
+std::string func_close();
+
+}  // namespace cemplate

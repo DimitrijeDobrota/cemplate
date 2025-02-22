@@ -13,9 +13,10 @@ Checks: "*,\
   -llvm-header-guard,\
   -llvm-include-order,\
   -llvmlibc-*,\
+  -modernize-use-designated-initializers,\
   -modernize-use-nodiscard,\
-  -modernize-use-trailing-return-type,\
   -modernize-use-ranges,\
+  -modernize-use-trailing-return-type,\
   -misc-include-cleaner,\
 "
 WarningsAsErrors: ''
