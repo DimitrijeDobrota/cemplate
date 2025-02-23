@@ -23,6 +23,10 @@ int main()
   std::cout << func("test");
 
   std::cout << func_decl("decl", "void", {});
+  std::cout << '\n';
+
+  std::cout << "static const test_class test = ";
+  std::cout << initlist({"val11", "val12", {"val21", "val22"}, "val13"});
 
   std::cout << nspace("cemplate");
 
