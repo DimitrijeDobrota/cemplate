@@ -4,6 +4,7 @@
 
 int main()
 {
+  using namespace std::string_literals;  // NOLINT
   using namespace cemplate;  // NOLINT
 
   std::cout << pragma_once();
@@ -15,14 +16,18 @@ int main()
 
   std::cout << nspace("cemplate");
 
-  std::cout << func("test", "int", {});
+  std::cout << func("test", "int");
   std::cout << ret("3");
   std::cout << func("test");
 
-  std::cout << func("test", "void", {{"int", "val1"}, {"std::string", "val2"}});
+  std::cout << func("test", "void", {{{"int"s, "val1"s}}});
   std::cout << func("test");
 
-  std::cout << func_decl("decl", "void", {});
+  std::cout << func(
+      "test", "void", {{"int"s, "val1"s}, {"std::string"s, "val2"s}});
+  std::cout << func("test");
+
+  std::cout << func_decl("decl", "void");
   std::cout << '\n';
 
   std::cout << "static const test_class test = ";
