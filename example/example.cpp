@@ -7,33 +7,33 @@ int main()
   using namespace std::string_literals;  // NOLINT
   using namespace cemplate;  // NOLINT
 
-  std::cout << pragma_once();
+  std::cout << Pragma("once") << '\n';
 
-  std::cout << include("format");
-  std::cout << include("iostream");
-  std::cout << include("string");
+  std::cout << Include("format");
+  std::cout << Include("iostream");
+  std::cout << Include("string");
   std::cout << '\n';
 
-  std::cout << nspace("cemplate");
+  std::cout << Namespace("cemplate");
 
-  std::cout << func("test", "int");
-  std::cout << ret("3");
-  std::cout << func("test");
+  std::cout << Function("test", "int");
+  std::cout << Return("3");
+  std::cout << Function("test");
 
-  std::cout << func("test", "void", {{{"int"s, "val1"s}}});
-  std::cout << func("test");
+  std::cout << Function("test", "void", {{{"int"s, "val1"s}}});
+  std::cout << Function("test");
 
-  std::cout << func(
+  std::cout << Function(
       "test", "void", {{"int"s, "val1"s}, {"std::string"s, "val2"s}});
-  std::cout << func("test");
+  std::cout << Function("test");
 
-  std::cout << func_decl("decl", "void");
+  std::cout << FunctionD("decl", "void");
   std::cout << '\n';
 
   std::cout << "static const test_class test = ";
-  std::cout << initlist({"val11", "val12", {"val21", "val22"}, "val13"});
+  std::cout << Initlist({"val11", "val12", {"val21", "val22"}, "val13"});
 
-  std::cout << nspace("cemplate");
+  std::cout << Namespace("cemplate");
 
   return 0;
 }

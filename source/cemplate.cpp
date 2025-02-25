@@ -29,168 +29,137 @@ void warning(const std::string& message, const std::string& addition)  // NOLINT
 namespace cemplate
 {
 
-std::string pragma_once()
+Pragma::operator std::string() const
 {
-  return "#pragma once\n\n";
+  return std::format("#pragma {}\n", m_value);
 }
 
-std::string include(const std::string& header, bool local)
+Include::operator std::string() const
 {
-  return local ? std::format("#include \"{}\"\n", header)
-               : std::format("#include <{}>\n", header);
+  return std::format("#include <{}>\n", m_header);
 }
 
-std::string nspace(const std::string& name)
+IncludeL::operator std::string() const
+{
+  return std::format("#include \"{}\"\n", m_header);
+}
+
+Namespace::operator std::string() const
 {
   static std::unordered_set<std::string> seen;
   static std::stack<std::string> stk;
 
-  if (stk.empty() || stk.top() != name) {
-    if (seen.contains(name)) {
-      warning("nesting namespaces of the same name", name);
+  if (stk.empty() || stk.top() != m_name) {
+    if (seen.contains(m_name)) {
+      warning("nesting namespaces of the same name", m_name);
     }
 
-    seen.insert(name);
-    stk.push(name);
+    seen.insert(m_name);
+    stk.push(m_name);
 
-    return std::format("namespace {}\n{{\n\n", name);
+    return std::format("namespace {}\n{{\n\n", m_name);
   }
 
-  seen.erase(name);
+  seen.erase(m_name);
   stk.pop();
-  return std::format("\n}} // namespace {}\n\n", name);
+  return std::format("\n}} // namespace {}\n\n", m_name);
 }
 
-std::string ret(const std::string& val)
+Return::operator std::string() const
 {
-  return std::format("{}return {};\n", indent(), val);
+  return std::format("{}return {};\n", indent(), m_value);
 }
 
-std::string string(const std::string& string)
+String::operator std::string() const
 {
-  return std::format(R"("{}")", string);
+  return std::format(R"("{}")", m_value);
 }
 
-std::string decl(const std::string& type, const std::string& name)
+Declaration::operator std::string() const
 {
-  return std::format("{}{} {} = ", indent(), type, name);
+  return std::format("{}{} {} = {};\n", indent(), m_type, m_name, m_value);
 }
 
-call::operator std::string() const
+Call::operator std::string() const
 {
-  return std::format("{}({})", func(), args());
+  return std::format("{}({})", func(), join(args(), ", "));
 }
 
-std::ostream& operator<<(std::ostream& ost, const call& rhs)
+Statement::operator std::string() const
 {
-  return ost << static_cast<std::string>(rhs);
+  return std::format("{}{};\n", indent(), m_content);
 }
 
-call_s::operator std::string() const
+std::string Initlist::format(uint64_t lvl) const
 {
-  return std::format("{}{}({});\n", indent(), func(), args());
-}
+  const auto eval = []<typename T>(const T& val, std::uint64_t llvl)
+  {
+    if constexpr (std::is_same_v<T, std::string>) {
+      return std::format("{}{},\n", indent(llvl), val);
+    } else if (std::is_same_v<T, Initlist>) {
+      return std::format(
+          "{}{{\n{}{}}},\n", indent(llvl), val.format(llvl + 1), indent(llvl));
+    } else {
+      return std::string();
+    }
+  };
 
-std::ostream& operator<<(std::ostream& ost, const call_s& rhs)
-{
-  return ost << static_cast<std::string>(rhs);
-}
-
-std::string eval(const std::string& val, std::uint64_t lvl);  // NOLINT
-std::string eval(const initlist& list, std::uint64_t lvl);  // NOLINT
-
-std::string initlist::format(uint64_t lvl) const
-{
   std::string res;
 
-  for (const auto& node : values) {
-    std::visit([&](const auto& value) { res += eval(value, lvl + 1); },
-               node.value());
+  for (const auto& elem : values) {
+    std::visit([&](const auto& val) { res += eval(val, lvl + 1); },
+               elem.value());
   }
 
   return res;
 }
 
-std::string eval(const initlist& list, std::uint64_t lvl)
+Initlist::operator std::string() const
 {
-  return std::format(
-      "{}{{\n{}{}}},\n", indent(lvl), list.format(lvl + 1), indent(lvl));
+  return std::format("{{\n{}{}}};\n", format(indent_lvl + 1), indent());
 }
 
-std::string eval(const std::string& val, std::uint64_t lvl)
-{
-  return std::format("{}{},\n", indent(lvl), val);
-}
-
-std::ostream& operator<<(std::ostream& ost, const initlist& rhs)
-{
-  return ost << std::format(
-             "{{\n{}{}}};\n", rhs.format(indent_lvl + 1), indent());
-}
-
-std::string func_helper(const std::string& name,  // NOLINT
-                        const std::string& ret,
-                        const std::vector<std::string>& params)
-{
-  return std::format("{} {}({})", ret, name, accumulate(params, ", "));
-}
-
-std::ostream& operator<<(std::ostream& ost, const func& rhs)
+Function::operator std::string() const
 {
   static std::string last;
 
-  if (last.empty()) {
-    if (rhs.ret().empty()) {
-      warning("function should have a return type", rhs.name());
+  if (!last.empty()) {
+    if (last != name()) {
+      warning("function is not closed", last);
     }
 
-    last = rhs.name();
-    indent_lvl++;
-    return ost << func_helper(rhs.name(), rhs.ret(), rhs.params()) + "\n{\n";
+    last.clear();
+    indent_lvl--;
+    return "}\n\n";
   }
 
-  if (last != rhs.name()) {
-    warning("function is not closed", last);
+  if (ret().empty()) {
+    warning("function should have a return type", name());
   }
 
-  last.clear();
-  indent_lvl--;
-  return ost << "}\n\n";
+  last = name();
+  indent_lvl++;
+  return std::format("{} {}({})\n{{\n", ret(), name(), join(params(), ", "));
 }
 
-std::ostream& operator<<(std::ostream& ost, const func_decl& rhs)
+FunctionD::operator std::string() const
 {
-  return ost << func_helper(rhs.name(), rhs.ret(), rhs.params()) + ";\n";
+  return std::format("{} {}({});\n", ret(), name(), join(params(), ", "));
 }
 
-tmplate::operator std::string() const
+Template::operator std::string() const
 {
-  return std::format("{}template <{}>\n", indent(), accumulate(m_params, ","));
+  return std::format("{}template <{}>\n", indent(), join(m_params, ", "));
 }
 
-std::ostream& operator<<(std::ostream& ost, const tmplate& rhs)
+TemplateD::operator std::string() const
 {
-  return ost << static_cast<std::string>(rhs);
+  return std::format("{}<{}>", m_var, join(m_params, ", "));
 }
 
-tmplate_spec::operator std::string() const
-{
-  return std::format("{}<{}>", m_var, m_param);
-}
-
-std::ostream& operator<<(std::ostream& ost, const tmplate_spec& rhs)
-{
-  return ost << static_cast<std::string>(rhs);
-}
-
-rquires::operator std::string() const
+Requires::operator std::string() const
 {
   return std::format("{}requires {}\n", indent(indent_lvl + 1), m_value);
-}
-
-std::ostream& operator<<(std::ostream& ost, const rquires& rhs)
-{
-  return ost << static_cast<std::string>(rhs);
 }
 
 }  // namespace cemplate

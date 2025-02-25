@@ -18,7 +18,7 @@ std::string to_string(const T& val)
 }
 
 template<typename T>
-std::string accumulate(
+std::string join(
     const std::vector<T>& values,
     const std::string& delim,
     const transform_f<std::type_identity_t<T>>& transform = to_string<T>)
@@ -35,12 +35,15 @@ std::string accumulate(
   return res;
 }
 
-struct initlist_elem;
+class InitlistElem;
 
-struct initlist
+class Initlist
 {
-  std::string format(std::uint64_t lvl) const;
-  friend std::ostream& operator<<(std::ostream& ost, const initlist& rhs);
+public:
+  std::string format(uint64_t lvl) const;
+
+  operator std::string() const;  // NOLINT
+  friend std::ostream& operator<<(std::ostream& ost, const Initlist& rhs);
 
   template<typename... Args>
   void emplace_back(Args... args)
@@ -48,32 +51,33 @@ struct initlist
     values.emplace_back(std::forward<Args>(args)...);
   }
 
-  std::vector<initlist_elem> values;  // NOLINT
+  std::vector<InitlistElem> values;  // NOLINT
 };
 
-struct initlist_elem
+class InitlistElem
 {
-  initlist_elem(std::string value)  // NOLINT
+public:
+  InitlistElem(std::string value)  // NOLINT
       : m_value(std::move(value))
   {
   }
 
-  initlist_elem(std::string_view value)  // NOLINT
+  InitlistElem(std::string_view value)  // NOLINT
       : m_value(std::in_place_type<std::string>, value)
   {
   }
 
-  initlist_elem(const char* value)  // NOLINT
+  InitlistElem(const char* value)  // NOLINT
       : m_value(value)
   {
   }
 
-  initlist_elem(std::initializer_list<initlist_elem> list)  // NOLINT
-      : m_value(std::in_place_type<initlist>, list)
+  InitlistElem(std::initializer_list<InitlistElem> list)  // NOLINT
+      : m_value(std::in_place_type<Initlist>, list)
   {
   }
 
-  initlist_elem(initlist list)  // NOLINT
+  InitlistElem(Initlist list)  // NOLINT
       : m_value(std::move(list))
   {
   }
@@ -81,21 +85,20 @@ struct initlist_elem
   const auto& value() const { return m_value; }
 
 private:
-  std::variant<std::string, initlist> m_value;
+  std::variant<std::string, Initlist> m_value;
 };
 
-class func
+class Function
 {
 public:
-  class param_t
+  struct param_t
   {
-  public:
     param_t(std::string type, std::string name)
         : m_value(std::move(type) + " " + std::move(name))
     {
     }
 
-    explicit operator std::string() const { return m_value; }
+    operator std::string() const { return m_value; }  // NOLINT
 
     const auto& value() const { return m_value; }
 
@@ -103,30 +106,34 @@ public:
     std::string m_value;
   };
 
-  explicit func(std::string name)
+  explicit Function(std::string name)
       : m_name(std::move(name))
   {
   }
 
-  func(std::string name, std::string ret, const std::vector<param_t>& params)
+  Function(std::string name,
+           std::string ret,
+           const std::vector<param_t>& params)
       : m_name(std::move(name))
       , m_ret(std::move(ret))
       , m_params(params.begin(), params.end())
   {
   }
 
-  func(std::string name, std::string ret, std::vector<std::string> params = {})
+  Function(std::string name,
+           std::string ret,
+           std::vector<std::string> params = {})
       : m_name(std::move(name))
       , m_ret(std::move(ret))
       , m_params(std::move(params))
   {
   }
-
   const auto& name() const { return m_name; }
   const auto& ret() const { return m_ret; }
   const auto& params() const { return m_params; }
 
-  friend std::ostream& operator<<(std::ostream& ost, const func& rhs);
+  operator std::string() const;  // NOLINT
+  friend std::ostream& operator<<(std::ostream& ost, const Function& rhs);
 
 private:
   std::string m_name;
@@ -134,37 +141,44 @@ private:
   std::vector<std::string> m_params;
 };
 
-class func_decl : public func
+class FunctionD : public Function
 {
 public:
-  func_decl(std::string name,
+  FunctionD(std::string name,
             std::string ret,
             const std::vector<param_t>& params)
-      : func(std::move(name), std::move(ret), params)
+      : Function(std::move(name), std::move(ret), params)
   {
   }
 
-  func_decl(std::string name,
+  FunctionD(std::string name,
             std::string ret,
             std::vector<std::string> params = {})
-      : func(std::move(name), std::move(ret), std::move(params))
+      : Function(std::move(name), std::move(ret), std::move(params))
   {
   }
 
-  friend std::ostream& operator<<(std::ostream& ost, const func_decl& rhs);
+  operator std::string() const;  // NOLINT
+  friend std::ostream& operator<<(std::ostream& ost, const FunctionD& rhs);
 };
 
-class call
+class Call
 {
 public:
-  call(std::string func, std::string args)
+  Call(std::string func, std::vector<std::string> args)
       : m_func(std::move(func))
       , m_args(std::move(args))
   {
   }
 
+  Call(std::string func, std::string arg)
+      : m_func(std::move(func))
+      , m_args({std::move(arg)})
+  {
+  }
+
   operator std::string() const;  // NOLINT
-  friend std::ostream& operator<<(std::ostream& ost, const call& rhs);
+  friend std::ostream& operator<<(std::ostream& ost, const Call& rhs);
 
 protected:
   const auto& func() const { return m_func; }
@@ -172,79 +186,219 @@ protected:
 
 private:
   std::string m_func;
-  std::string m_args;
+  std::vector<std::string> m_args;
 };
 
-class call_s : public call
+class Statement
 {
 public:
-  call_s(std::string func, std::string args)
-      : call(std::move(func), std::move(args))
-
+  explicit Statement(std::string content)
+      : m_content(std::move(content))
   {
   }
 
   operator std::string() const;  // NOLINT
-  friend std::ostream& operator<<(std::ostream& ost, const call_s& rhs);
+  friend std::ostream& operator<<(std::ostream& ost, const Statement& rhs);
+
+private:
+  std::string m_content;
 };
 
-class tmplate
+class Template
 {
 public:
-  explicit tmplate(std::vector<std::string> params)
+  explicit Template(std::vector<std::string> params)
       : m_params(std::move(params))
   {
   }
 
+  explicit Template(std::string param)
+      : m_params({std::move(param)})
+  {
+  }
+
   operator std::string() const;  // NOLINT
-  friend std::ostream& operator<<(std::ostream& ost, const tmplate& rhs);
+  friend std::ostream& operator<<(std::ostream& ost, const Template& rhs);
 
 private:
   std::vector<std::string> m_params;
 };
 
-class tmplate_spec
+class TemplateD
 {
 public:
-  explicit tmplate_spec(std::string var, std::string param)
+  TemplateD(std::string var, std::vector<std::string> params)
       : m_var(std::move(var))
-      , m_param(std::move(param))
+      , m_params(std::move(params))
+  {
+  }
+
+  TemplateD(std::string var, std::string param)
+      : m_var(std::move(var))
+      , m_params({std::move(param)})
   {
   }
 
   operator std::string() const;  // NOLINT
-  friend std::ostream& operator<<(std::ostream& ost, const tmplate_spec& rhs);
+  friend std::ostream& operator<<(std::ostream& ost, const TemplateD& rhs);
 
 private:
   std::string m_var;
-  std::string m_param;
+  std::vector<std::string> m_params;
 };
 
-class rquires
+class Requires
 {
 public:
-  explicit rquires(std::string value)
+  explicit Requires(std::string value)
       : m_value(std::move(value))
   {
   }
 
   operator std::string() const;  // NOLINT
-  friend std::ostream& operator<<(std::ostream& ost, const rquires& rhs);
+  friend std::ostream& operator<<(std::ostream& ost, const Requires& rhs);
 
 private:
   std::string m_value;
 };
 
-std::string pragma_once();
+class Pragma
+{
+public:
+  explicit Pragma(std::string value)
+      : m_value(std::move(value))
+  {
+  }
 
-std::string include(const std::string& header, bool local = false);
+  operator std::string() const;  // NOLINT
+  friend std::ostream& operator<<(std::ostream& ost, const Pragma& rhs);
 
-std::string nspace(const std::string& name);
+private:
+  std::string m_value;
+};
 
-std::string ret(const std::string& val);
+class Include
+{
+public:
+  explicit Include(std::string header)
+      : m_header(std::move(header))
+  {
+  }
 
-std::string string(const std::string& string);
+  operator std::string() const;  // NOLINT
+  friend std::ostream& operator<<(std::ostream& ost, const Include& rhs);
 
-std::string decl(const std::string& type, const std::string& name);
+private:
+  std::string m_header;
+};
+
+class IncludeL
+{
+public:
+  explicit IncludeL(std::string header)
+      : m_header(std::move(header))
+  {
+  }
+
+  operator std::string() const;  // NOLINT
+  friend std::ostream& operator<<(std::ostream& ost, const IncludeL& rhs);
+
+private:
+  std::string m_header;
+};
+
+class Namespace
+{
+public:
+  explicit Namespace(std::string name)
+      : m_name(std::move(name))
+  {
+  }
+
+  operator std::string() const;  // NOLINT
+  friend std::ostream& operator<<(std::ostream& ost, const Namespace& rhs);
+
+private:
+  std::string m_name;
+};
+
+class Return
+{
+public:
+  explicit Return(std::string value)
+      : m_value(std::move(value))
+  {
+  }
+
+  operator std::string() const;  // NOLINT
+  friend std::ostream& operator<<(std::ostream& ost, const Return& rhs);
+
+private:
+  std::string m_value;
+};
+
+class Declaration
+{
+public:
+  Declaration(std::string type, std::string name, std::string value)
+      : m_type(std::move(type))
+      , m_name(std::move(name))
+      , m_value(std::move(value))
+  {
+  }
+
+  operator std::string() const;  // NOLINT
+  friend std::ostream& operator<<(std::ostream& ost, const Declaration& rhs);
+
+private:
+  std::string m_type;
+  std::string m_name;
+  std::string m_value;
+};
+
+class String
+{
+public:
+  explicit String(std::string value)
+      : m_value(std::move(value))
+  {
+  }
+
+  operator std::string() const;  // NOLINT
+  friend std::ostream& operator<<(std::ostream& ost, const String& rhs);
+
+private:
+  std::string m_value;
+};
+
+template<typename T, int key>
+std::ostream& operator<<(std::ostream& ost, const T& rhs)
+{
+  return ost << static_cast<std::string>(rhs);
+}
+
+// NOLINTBEGIN
+#define DEF_OST(typename) \
+  inline std::ostream& operator<<(std::ostream& ost, const typename& rhs) \
+  { \
+    return ost << static_cast<std::string>(rhs); \
+  }
+// NOLINTEND
+
+DEF_OST(Initlist)
+DEF_OST(Function)
+DEF_OST(FunctionD)
+DEF_OST(Call)
+DEF_OST(Statement)
+DEF_OST(Template)
+DEF_OST(TemplateD)
+DEF_OST(Requires)
+DEF_OST(Pragma)
+DEF_OST(Include)
+DEF_OST(IncludeL)
+DEF_OST(Namespace)
+DEF_OST(Return)
+DEF_OST(Declaration)
+DEF_OST(String)
 
 }  // namespace cemplate
