@@ -116,7 +116,7 @@ std::string Initlist::format(uint64_t lvl) const
 
 Initlist::operator std::string() const
 {
-  return std::format("{{\n{}{}}};\n", format(indent_lvl + 1), indent());
+  return std::format("{{\n{}{}}}", format(indent_lvl + 1), indent());
 }
 
 Function::operator std::string() const

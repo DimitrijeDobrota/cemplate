@@ -4,7 +4,7 @@ include(cmake/prelude.cmake)
 
 project(
     cemplate
-    VERSION 0.1.8
+    VERSION 0.1.9
     DESCRIPTION "Simple C++ template engine"
     HOMEPAGE_URL "https://git.dimitrijedobrota.com/cemplate.git"
     LANGUAGES CXX

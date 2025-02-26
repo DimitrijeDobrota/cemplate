@@ -35,6 +35,21 @@ std::string join(
   return res;
 }
 
+class String
+{
+public:
+  explicit String(std::string value)
+      : m_value(std::move(value))
+  {
+  }
+
+  operator std::string() const;  // NOLINT
+  friend std::ostream& operator<<(std::ostream& ost, const String& rhs);
+
+private:
+  std::string m_value;
+};
+
 class InitlistElem;
 
 class Initlist
@@ -69,6 +84,11 @@ public:
 
   InitlistElem(const char* value)  // NOLINT
       : m_value(value)
+  {
+  }
+
+  InitlistElem(String value)  // NOLINT
+      : m_value(std::move(value))
   {
   }
 
@@ -353,21 +373,6 @@ public:
 private:
   std::string m_type;
   std::string m_name;
-  std::string m_value;
-};
-
-class String
-{
-public:
-  explicit String(std::string value)
-      : m_value(std::move(value))
-  {
-  }
-
-  operator std::string() const;  // NOLINT
-  friend std::ostream& operator<<(std::ostream& ost, const String& rhs);
-
-private:
   std::string m_value;
 };
 
