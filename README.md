@@ -23,7 +23,7 @@ to be a major reimagination some time in the future.
 See the [`BUILDING`](BUILDING.md) document.
 
 
-### Usage
+## Usage
 
 > Please reference example folder for relevant usage examples.
 
