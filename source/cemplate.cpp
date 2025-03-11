@@ -29,65 +29,100 @@ void warning(const std::string& message, const std::string& addition)  // NOLINT
 namespace cemplate
 {
 
-Pragma::operator std::string() const
+std::string String(const std::string& value)
 {
-  return std::format("#pragma {}\n", m_value);
+  return std::format(R"("{}")", value);
 }
 
-Include::operator std::string() const
+std::string Pragma(const std::string& value)
 {
-  return std::format("#include <{}>\n", m_header);
+  return std::format("#pragma {}\n", value);
 }
 
-IncludeL::operator std::string() const
+std::string Include(const std::string& header)
 {
-  return std::format("#include \"{}\"\n", m_header);
+  return std::format("#include <{}>\n", header);
 }
 
-Namespace::operator std::string() const
+std::string IncludeL(const std::string& header)
+{
+  return std::format("#include \"{}\"\n", header);
+}
+
+std::string Namespace(const std::string& name)
 {
   static std::unordered_set<std::string> seen;
   static std::stack<std::string> stk;
 
-  if (stk.empty() || stk.top() != m_name) {
-    if (seen.contains(m_name)) {
-      warning("nesting namespaces of the same name", m_name);
+  if (stk.empty() || stk.top() != name) {
+    if (seen.contains(name)) {
+      warning("nesting namespaces of the same name", name);
     }
 
-    seen.insert(m_name);
-    stk.push(m_name);
+    seen.insert(name);
+    stk.push(name);
 
-    return std::format("namespace {}\n{{\n\n", m_name);
+    return std::format("namespace {}\n{{\n\n", name);
   }
 
-  seen.erase(m_name);
+  seen.erase(name);
   stk.pop();
-  return std::format("\n}} // namespace {}\n\n", m_name);
+  return std::format("\n}} // namespace {}\n\n", name);
 }
 
-Return::operator std::string() const
+std::string Comment(const std::string& value)
 {
-  return std::format("{}return {};\n", indent(), m_value);
+  return std::format("{}// {}\n", indent(), value);
 }
 
-String::operator std::string() const
+std::string MultilineComment(const std::vector<std::string>& values)
 {
-  return std::format(R"("{}")", m_value);
+  return std::format(
+      "{}/* {}\n*/\n",
+      indent(),
+      join(std::begin(values), std::end(values), "\n" + indent() + "   "));
 }
 
-Declaration::operator std::string() const
+std::string Call(const std::string& func, const std::vector<std::string>& args)
 {
-  return std::format("{}{} {} = {};\n", indent(), m_type, m_name, m_value);
+  return std::format(
+      "{}({})", func, join(std::begin(args), std::end(args), ", "));
 }
 
-Call::operator std::string() const
+std::string Statement(const std::string& content)
 {
-  return std::format("{}({})", func(), join(args(), ", "));
+  return std::format("{}{};\n", indent(), content);
 }
 
-Statement::operator std::string() const
+std::string Return(const std::string& value)
 {
-  return std::format("{}{};\n", indent(), m_content);
+  return std::format("{}return {};\n", indent(), value);
+}
+
+std::string Declaration(const std::string& type,
+                        const std::string& name,
+                        const std::string& value)
+{
+  return std::format("{}{} {} = {};\n", indent(), type, name, value);
+}
+
+std::string Requires(const std::string& value)
+{
+  return std::format("{}requires {}\n", indent(indent_lvl + 1), value);
+}
+
+std::string Template(const std::vector<std::string>& params)
+{
+  return std::format("{}template <{}>\n",
+                     indent(),
+                     join(std::begin(params), std::end(params), ", "));
+}
+
+std::string TemplateD(const std::string& var,
+                      const std::vector<std::string>& params)
+{
+  return std::format(
+      "{}<{}>", var, join(std::begin(params), std::end(params), ", "));
 }
 
 std::string Initlist::format(uint64_t lvl) const
@@ -106,7 +141,7 @@ std::string Initlist::format(uint64_t lvl) const
 
   std::string res;
 
-  for (const auto& elem : values) {
+  for (const auto& elem : m_values) {
     std::visit([&](const auto& val) { res += eval(val, lvl + 1); },
                elem.value());
   }
@@ -139,27 +174,18 @@ Function::operator std::string() const
 
   last = name();
   indent_lvl++;
-  return std::format("{} {}({})\n{{\n", ret(), name(), join(params(), ", "));
+  return std::format("{} {}({})\n{{\n",
+                     ret(),
+                     name(),
+                     join(std::begin(params()), std::end(params()), ", "));
 }
 
 FunctionD::operator std::string() const
 {
-  return std::format("{} {}({});\n", ret(), name(), join(params(), ", "));
-}
-
-Template::operator std::string() const
-{
-  return std::format("{}template <{}>\n", indent(), join(m_params, ", "));
-}
-
-TemplateD::operator std::string() const
-{
-  return std::format("{}<{}>", m_var, join(m_params, ", "));
-}
-
-Requires::operator std::string() const
-{
-  return std::format("{}requires {}\n", indent(indent_lvl + 1), m_value);
+  return std::format("{} {}({});\n",
+                     ret(),
+                     name(),
+                     join(std::begin(params()), std::end(params()), ", "));
 }
 
 }  // namespace cemplate

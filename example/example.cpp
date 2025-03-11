@@ -7,33 +7,40 @@ int main()
   using namespace std::string_literals;  // NOLINT
   using namespace cemplate;  // NOLINT
 
-  std::cout << Pragma("once") << '\n';
+  // clang-format off
+  // NOLINTBEGIN
+   program(std::cout, 
+          Pragma("once"),
+          empty(),
+          Include("format"),
+          Include("iostream"),
+          Include("string"),
+          empty(),
+          Namespace("cemplate"),
 
-  std::cout << Include("format");
-  std::cout << Include("iostream");
-  std::cout << Include("string");
-  std::cout << '\n';
+          Comment("some test function"),
+          Function("test", "int"),
+              Return("3"),
+          Function("test"),
 
-  std::cout << Namespace("cemplate");
+          Comment("another test function"),
+          Function("test", "void", {{{"int"s, "val1"s}}}),
+          Function("test"),
 
-  std::cout << Function("test", "int");
-  std::cout << Return("3");
-  std::cout << Function("test");
+          MultilineComment({"", "yet, another test function", "this time with multiple params"}),
+          Function( "test", "void", {{"int"s, "val1"s}, {"std::string"s, "val2"s}}),
+          Function("test"),
 
-  std::cout << Function("test", "void", {{{"int"s, "val1"s}}});
-  std::cout << Function("test");
+          FunctionD("decl", "void"),
+          empty(),
 
-  std::cout << Function(
-      "test", "void", {{"int"s, "val1"s}, {"std::string"s, "val2"s}});
-  std::cout << Function("test");
+          "static const test_class test = ",
+          Initlist({"val11", "val12", {"val21", "val22"}, "val13"}),
 
-  std::cout << FunctionD("decl", "void");
-  std::cout << '\n';
-
-  std::cout << "static const test_class test = ";
-  std::cout << Initlist({"val11", "val12", {"val21", "val22"}, "val13"});
-
-  std::cout << Namespace("cemplate");
+          Namespace("cemplate")
+  );
+  // NOLINTEND
+  // clang-format on
 
   return 0;
 }
