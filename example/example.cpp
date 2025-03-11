@@ -9,7 +9,7 @@ int main()
 
   // clang-format off
   // NOLINTBEGIN
-   program(std::cout, 
+   program(std::cout, {
           Pragma("once"),
           empty(),
           Include("format"),
@@ -38,7 +38,7 @@ int main()
           Initlist({"val11", "val12", {"val21", "val22"}, "val13"}),
 
           Namespace("cemplate")
-  );
+  });
   // NOLINTEND
   // clang-format on
 

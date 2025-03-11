@@ -41,10 +41,10 @@ std::string join(InputIt first,
   return res;
 }
 
-template<typename... Args>
-void program(std::ostream& ost, const Args&... args)
+inline void program(std::ostream& ost, std::initializer_list<std::string> args)
 {
-  ((ost << to_string()(args)), ...);
+  std::for_each(
+      std::begin(args), std::end(args), [&](const auto& val) { ost << val; });
 }
 
 inline const char* empty()
