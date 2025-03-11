@@ -4,7 +4,9 @@
 #include <cstdint>
 #include <functional>
 #include <iostream>
+#include <stack>
 #include <string>
+#include <unordered_set>
 #include <variant>
 
 namespace cemplate
@@ -41,6 +43,14 @@ std::string join(InputIt first,
   return res;
 }
 
+template<typename T, class UnaryFunc = to_string>
+std::string join(std::initializer_list<T> list,
+                 const std::string& delim,
+                 UnaryFunc func = to_string())
+{
+  return join(std::begin(list), std::end(list), delim, func);
+}
+
 inline void program(std::ostream& ost, std::initializer_list<std::string> args)
 {
   std::for_each(
@@ -58,7 +68,6 @@ std::string String(const std::string& value);
 std::string Pragma(const std::string& value);
 std::string Include(const std::string& header);
 std::string IncludeL(const std::string& header);
-std::string Namespace(const std::string& name);
 
 std::string Comment(const std::string& value);
 std::string MultilineComment(const std::vector<std::string>& values);
@@ -74,9 +83,28 @@ std::string Declaration(const std::string& type, const std::string& name, const 
 
 std::string Requires(const std::string& value);
 std::string Template(const std::vector<std::string>& params);
-inline std::string Template(const std::string& param) { return Template(std::vector({param})); }
 std::string TemplateD(const std::string& var, const std::vector<std::string>& params);
+inline std::string Template(const std::string& param) { return Template(std::vector({param})); }
 inline std::string TemplateD(const std::string& var, const std::string& param) { return TemplateD(var, std::vector({param})); }
+
+struct param_t
+{
+param_t(std::string type, std::string name)
+    : m_value(std::move(type) + " " + std::move(name))
+{
+}
+
+operator std::string() const { return m_value; }  // NOLINT
+
+const auto& value() const { return m_value; }
+
+private:
+std::string m_value;
+};
+
+std::string FunctionD(const std::string& name, const std::string& ret, const std::vector<std::string>& params = {});
+inline std::string FunctionD(const std::string& name, const std::string& ret, const std::vector<param_t>& params) { return FunctionD(name, ret, std::vector<std::string>(std::begin(params), std::end(params))); }
+
 // NOLINTEND
 // clang-format on
 
@@ -148,73 +176,34 @@ Initlist::Initlist(InputItr first, InputItr last, UnaryFunc func)
 class Function
 {
 public:
-  struct param_t
+  std::string open(const std::string& name,
+                   const std::string& ret,
+                   const std::vector<std::string>& params = {});
+
+  std::string open(const std::string& name,
+                   const std::string& ret,
+                   const std::vector<param_t>& params)
   {
-    param_t(std::string type, std::string name)
-        : m_value(std::move(type) + " " + std::move(name))
-    {
-    }
-
-    operator std::string() const { return m_value; }  // NOLINT
-
-    const auto& value() const { return m_value; }
-
-  private:
-    std::string m_value;
-  };
-
-  explicit Function(std::string name)
-      : m_name(std::move(name))
-  {
+    return open(name,
+                ret,
+                std::vector<std::string>(std::begin(params), std::end(params)));
   }
 
-  Function(std::string name,
-           std::string ret,
-           const std::vector<param_t>& params)
-      : m_name(std::move(name))
-      , m_ret(std::move(ret))
-      , m_params(params.begin(), params.end())
-  {
-  }
-
-  Function(std::string name,
-           std::string ret,
-           std::vector<std::string> params = {})
-      : m_name(std::move(name))
-      , m_ret(std::move(ret))
-      , m_params(std::move(params))
-  {
-  }
-  const auto& name() const { return m_name; }
-  const auto& ret() const { return m_ret; }
-  const auto& params() const { return m_params; }
-
-  operator std::string() const;  // NOLINT
+  std::string close(const std::string& name);
 
 private:
-  std::string m_name;
-  std::string m_ret;
-  std::vector<std::string> m_params;
+  std::string m_last;
 };
 
-class FunctionD : public Function
+class Namespace
 {
 public:
-  FunctionD(std::string name,
-            std::string ret,
-            const std::vector<param_t>& params)
-      : Function(std::move(name), std::move(ret), params)
-  {
-  }
+  std::string open(const std::string& name);
+  std::string close(const std::string& name);
 
-  FunctionD(std::string name,
-            std::string ret,
-            std::vector<std::string> params = {})
-      : Function(std::move(name), std::move(ret), std::move(params))
-  {
-  }
-
-  operator std::string() const;  // NOLINT
+private:
+  std::unordered_set<std::string> m_seen;
+  std::stack<std::string> m_stk;
 };
 
 }  // namespace cemplate

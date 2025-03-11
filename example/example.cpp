@@ -7,6 +7,9 @@ int main()
   using namespace std::string_literals;  // NOLINT
   using namespace cemplate;  // NOLINT
 
+  Namespace nspace;
+  Function func;
+
   // clang-format off
   // NOLINTBEGIN
    program(std::cout, {
@@ -16,20 +19,20 @@ int main()
           Include("iostream"),
           Include("string"),
           empty(),
-          Namespace("cemplate"),
+          nspace.open("cemplate"),
 
           Comment("some test function"),
-          Function("test", "int"),
+          func.open("test", "int"),
               Return("3"),
-          Function("test"),
+          func.close("test"),
 
           Comment("another test function"),
-          Function("test", "void", {{{"int"s, "val1"s}}}),
-          Function("test"),
+          func.open("test", "void", {{{"int"s, "val1"s}}}),
+          func.close("test"),
 
           MultilineComment({"", "yet, another test function", "this time with multiple params"}),
-          Function( "test", "void", {{"int"s, "val1"s}, {"std::string"s, "val2"s}}),
-          Function("test"),
+          func.open( "test", "void", {{"int"s, "val1"s}, {"std::string"s, "val2"s}}),
+          func.close("test"),
 
           FunctionD("decl", "void"),
           empty(),
@@ -37,7 +40,7 @@ int main()
           "static const test_class test = ",
           Initlist({"val11", "val12", {"val21", "val22"}, "val13"}),
 
-          Namespace("cemplate")
+          nspace.close("cemplate")
   });
   // NOLINTEND
   // clang-format on
