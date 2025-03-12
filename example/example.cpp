@@ -7,42 +7,37 @@ int main()
   using namespace std::string_literals;  // NOLINT
   using namespace cemplate;  // NOLINT
 
-  Namespace nspace;
-  Function func;
+  Program program(std::cout);
 
   // clang-format off
-  // NOLINTBEGIN
-   program(std::cout, {
-          Pragma("once"),
-          empty(),
-          Include("format"),
-          Include("iostream"),
-          Include("string"),
-          empty(),
-          nspace.open("cemplate"),
+  program.pragma("once")
+      .line_empty()
+      .include("format")
+      .include("iostream")
+      .include("string")
+      .line_empty()
+      .namespace_open("cemplate")
 
-          Comment("some test function"),
-          func.open("test", "int"),
-              Return("3"),
-          func.close("test"),
+      .comment("some test function")
+      .function_open("test", "int")
+        .ret("3")
+      .function_close("test")
 
-          Comment("another test function"),
-          func.open("test", "void", {{{"int"s, "val1"s}}}),
-          func.close("test"),
+      .comment("another test function")
+      .function_open("test", "void", {{{"int"s, "val1"s}}})
+      .function_close("test")
 
-          MultilineComment({"", "yet, another test function", "this time with multiple params"}),
-          func.open( "test", "void", {{"int"s, "val1"s}, {"std::string"s, "val2"s}}),
-          func.close("test"),
+      .multilineComment({"", "yet, another test function", "this time with multiple params"})
+      .function_open("test", "void", {{"int"s, "val1"s}, {"std::string"s, "val2"s}})
+      .function_close("test")
 
-          FunctionD("decl", "void"),
-          empty(),
+      .function_decl("decl", "void")
+      .line_empty()
 
-          "static const test_class test = ",
-          Initlist({"val11", "val12", {"val21", "val22"}, "val13"}),
+      .line_value("static const test_class test = ")
+      .Initlist({"val11", "val12", {"val21", "val22"}, "val13"})
 
-          nspace.close("cemplate")
-  });
-  // NOLINTEND
+      .namespace_close("cemplate");
   // clang-format on
 
   return 0;

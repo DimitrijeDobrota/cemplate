@@ -6,13 +6,6 @@
 namespace
 {
 
-static std::uint64_t indent_lvl = 0;  // NOLINT
-
-auto indent(std::uint64_t lvl = indent_lvl)
-{
-  return std::string(lvl * 2, ' ');
-}
-
 void warning(const std::string& message, const std::string& addition)  // NOLINT
 {
   std::cerr << "Warning: " << message;
@@ -27,102 +20,127 @@ void warning(const std::string& message, const std::string& addition)  // NOLINT
 namespace cemplate
 {
 
-std::string String(const std::string& value)
+Program& Program::line_empty()
 {
-  return std::format(R"("{}")", value);
+  m_ost << "\n";
+  return *this;
 }
 
-std::string Pragma(const std::string& value)
+Program& Program::line_value(s_t value)
 {
-  return std::format("#pragma {}\n", value);
+  m_ost << indent() << value;
+  return *this;
 }
 
-std::string Include(const std::string& header)
+Program& Program::value(s_t value)
 {
-  return std::format("#include <{}>\n", header);
+  m_ost << value;
+  return *this;
 }
 
-std::string IncludeL(const std::string& header)
+Program& Program::string(s_t value)
 {
-  return std::format("#include \"{}\"\n", header);
+  m_ost << std::format(R"("{}")", value);
+  return *this;
 }
 
-std::string Comment(const std::string& value)
+Program& Program::pragma(s_t value)
 {
-  return std::format("{}// {}\n", indent(), value);
+  m_ost << std::format("#pragma {}\n", value);
+  return *this;
 }
 
-std::string MultilineComment(const std::vector<std::string>& values)
+Program& Program::include(s_t header)
 {
-  return std::format(
+  m_ost << std::format("#include <{}>\n", header);
+  return *this;
+}
+
+Program& Program::includeL(s_t header)
+{
+  m_ost << std::format("#include \"{}\"\n", header);
+  return *this;
+}
+
+Program& Program::comment(s_t value)
+{
+  m_ost << std::format("{}// {}\n", indent(), value);
+  return *this;
+}
+
+Program& Program::multilineComment(l_t values)
+{
+  m_ost << std::format(
       "{}/* {}\n*/\n",
       indent(),
       join(std::begin(values), std::end(values), "\n" + indent() + "   "));
+  return *this;
 }
 
-std::string Call(const std::string& func, const std::vector<std::string>& args)
+Program& Program::call(s_t func, l_t args)
 {
-  return std::format(
+  m_ost << std::format(
       "{}({})", func, join(std::begin(args), std::end(args), ", "));
+  return *this;
 }
 
-std::string Statement(const std::string& content)
+Program& Program::statement(s_t content)
 {
-  return std::format("{}{};\n", indent(), content);
+  m_ost << std::format("{}{};\n", indent(), content);
+  return *this;
 }
 
-std::string Return(const std::string& value)
+Program& Program::ret(s_t value)
 {
-  return std::format("{}return {};\n", indent(), value);
+  m_ost << std::format("{}m_ost << {};\n", indent(), value);
+  return *this;
 }
 
-std::string Declaration(const std::string& type,
-                        const std::string& name,
-                        const std::string& value)
+Program& Program::declaration(s_t type, s_t name, s_t value)
 {
-  return std::format("{}{} {} = {};\n", indent(), type, name, value);
+  m_ost << std::format("{}{} {} = {};\n", indent(), type, name, value);
+  return *this;
 }
 
-std::string Requires(const std::string& value)
+Program& Program::require(s_t value)
 {
-  return std::format("{}requires {}\n", indent(indent_lvl + 1), value);
+  m_ost << std::format("{}requires {}\n", indent(m_indent + 1), value);
+  return *this;
 }
 
-std::string Template(const std::vector<std::string>& params)
+Program& Program::template_decl(l_t params)
 {
-  return std::format("{}template <{}>\n",
-                     indent(),
-                     join(std::begin(params), std::end(params), ", "));
+  m_ost << std::format("{}template <{}>\n",
+                       indent(),
+                       join(std::begin(params), std::end(params), ", "));
+  return *this;
 }
 
-std::string TemplateD(const std::string& var,
-                      const std::vector<std::string>& params)
+Program& Program::template_def(s_t var, l_t params)
 {
-  return std::format(
+  m_ost << std::format(
       "{}<{}>", var, join(std::begin(params), std::end(params), ", "));
+  return *this;
 }
 
-std::string FunctionD(const std::string& name,
-                      const std::string& ret,
-                      const std::vector<std::string>& params)
+Program& Program::function_decl(s_t name, s_t ret, l_t params)
 {
-  return std::format("{} {}({});\n",
-                     ret,
-                     name,
-                     join(std::begin(params), std::end(params), ", "));
+  m_ost << std::format("{} {}({});\n",
+                       ret,
+                       name,
+                       join(std::begin(params), std::end(params), ", "));
+  return *this;
 }
 
-std::string Initlist::format(uint64_t lvl) const
+std::string Program::InitlistNode::format(uint64_t lvl) const
 {
   const auto eval = []<typename T>(const T& val, std::uint64_t llvl)
   {
     if constexpr (std::is_same_v<T, std::string>) {
       return std::format("{}{},\n", indent(llvl), val);
-    } else if (std::is_same_v<T, Initlist>) {
+    } else {
       return std::format(
           "{}{{\n{}{}}},\n", indent(llvl), val.format(llvl + 1), indent(llvl));
-    } else {
-      return std::string();
     }
   };
 
@@ -136,59 +154,62 @@ std::string Initlist::format(uint64_t lvl) const
   return res;
 }
 
-Initlist::operator std::string() const
+Program& Program::Initlist(const InitlistNode& node)
 {
-  return std::format("{{\n{}{}}}", format(indent_lvl + 1), indent());
+  m_ost << std::format("{{\n{}{}}}", node.format(m_indent + 1), indent());
+  return *this;
 }
 
-std::string Function::open(const std::string& name,
-                           const std::string& ret,
-                           const std::vector<std::string>& params)
+Program& Program::function_open(s_t name, s_t ret, l_t params)
 {
-  if (!m_last.empty()) {
-    warning("opening, but function is not closed", m_last);
+  if (!m_function_last.empty()) {
+    warning("opening, but function is not closed", m_function_last);
   }
 
-  m_last = name;
-  indent_lvl++;
-  return std::format("{} {}({})\n{{\n",
-                     ret,
-                     name,
-                     join(std::begin(params), std::end(params), ", "));
+  m_function_last = name;
+  m_indent++;
+  m_ost << std::format("{} {}({})\n{{\n",
+                       ret,
+                       name,
+                       join(std::begin(params), std::end(params), ", "));
+  return *this;
 }
 
-std::string Function::close(const std::string& name)
+Program& Program::function_close(s_t name)
 {
-  if (m_last != name) {
-    warning("closing, but function is not closed", m_last);
+  if (m_function_last != name) {
+    warning("closing, but function is not closed", m_function_last);
   }
 
-  m_last.clear();
-  indent_lvl--;
-  return "}\n\n";
+  m_function_last.clear();
+  m_indent--;
+  m_ost << "}\n\n";
+  return *this;
 }
 
-std::string Namespace::open(const std::string& name)
+Program& Program::namespace_open(s_t name)
 {
-  if (m_seen.contains(name)) {
+  if (m_namespace_seen.contains(name)) {
     warning("nesting namespaces of the same name", name);
   }
 
-  m_seen.insert(name);
-  m_stk.push(name);
+  m_namespace_seen.insert(name);
+  m_namespace_stack.push(name);
 
-  return std::format("namespace {}\n{{\n\n", name);
+  m_ost << std::format("namespace {}\n{{\n\n", name);
+  return *this;
 }
 
-std::string Namespace::close(const std::string& name)
+Program& Program::namespace_close(s_t name)
 {
-  if (m_stk.empty() || m_stk.top() != name) {
+  if (m_namespace_stack.empty() || m_namespace_stack.top() != name) {
     warning("closing unproper namespace", name);
   }
 
-  m_seen.erase(name);
-  m_stk.pop();
-  return std::format("\n}} // namespace {}\n\n", name);
+  m_namespace_seen.erase(name);
+  m_namespace_stack.pop();
+  m_ost << std::format("\n}} // namespace {}\n\n", name);
+  return *this;
 }
 
 }  // namespace cemplate

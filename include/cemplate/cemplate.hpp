@@ -51,159 +51,159 @@ std::string join(std::initializer_list<T> list,
   return join(std::begin(list), std::end(list), delim, func);
 }
 
-inline void program(std::ostream& ost, std::initializer_list<std::string> args)
-{
-  std::for_each(
-      std::begin(args), std::end(args), [&](const auto& val) { ost << val; });
-}
-
-inline const char* empty()
-{
-  return "\n";
-}
-
-// clang-format off
-// NOLINTBEGIN
-std::string String(const std::string& value);
-std::string Pragma(const std::string& value);
-std::string Include(const std::string& header);
-std::string IncludeL(const std::string& header);
-
-std::string Comment(const std::string& value);
-std::string MultilineComment(const std::vector<std::string>& values);
-inline std::string MultilineComment(const std::string& value) { return MultilineComment(std::vector({value})); }
-
-std::string Call(const std::string& func, const std::vector<std::string>& args);
-inline std::string Call(const std::string& func, const std::string& arg) { return Call(func, std::vector({arg})); }
-
-std::string Statement(const std::string& content);
-std::string Return(const std::string& value);
-
-std::string Declaration(const std::string& type, const std::string& name, const std::string& value);
-
-std::string Requires(const std::string& value);
-std::string Template(const std::vector<std::string>& params);
-std::string TemplateD(const std::string& var, const std::vector<std::string>& params);
-inline std::string Template(const std::string& param) { return Template(std::vector({param})); }
-inline std::string TemplateD(const std::string& var, const std::string& param) { return TemplateD(var, std::vector({param})); }
-
-struct param_t
-{
-param_t(std::string type, std::string name)
-    : m_value(std::move(type) + " " + std::move(name))
-{
-}
-
-operator std::string() const { return m_value; }  // NOLINT
-
-const auto& value() const { return m_value; }
-
-private:
-std::string m_value;
-};
-
-std::string FunctionD(const std::string& name, const std::string& ret, const std::vector<std::string>& params = {});
-inline std::string FunctionD(const std::string& name, const std::string& ret, const std::vector<param_t>& params) { return FunctionD(name, ret, std::vector<std::string>(std::begin(params), std::end(params))); }
-
-// NOLINTEND
-// clang-format on
-
-class InitlistElem;
-
-class Initlist
+class Program
 {
 public:
-  Initlist(std::initializer_list<InitlistElem> list);
+  using s_t = const std::string&;
+  using l_t = const std::vector<std::string>&;
 
-  template<typename InputItr, typename UnaryFunc>
-  Initlist(InputItr first, InputItr last, UnaryFunc func);
+  explicit Program(std::ostream& ost)
+      : m_ost(ost)
+  {
+  }
 
-  std::string format(uint64_t lvl) const;
+  struct param_t
+  {
+    param_t(s_t type, s_t name)
+        : m_value(type + " " + name)
+    {
+    }
 
-  operator std::string() const;  // NOLINT
+    operator std::string() const { return m_value; }  // NOLINT
+
+    const auto& value() const { return m_value; }
+
+  private:
+    std::string m_value;
+  };
+
+  class InitlistElem;
+
+  class InitlistNode
+  {
+  public:
+    InitlistNode(std::initializer_list<InitlistElem> list);
+
+    template<typename InputItr, typename UnaryFunc>
+    InitlistNode(InputItr first, InputItr last, UnaryFunc func);
+
+    std::string format(uint64_t lvl) const;
+
+    operator std::string() const;  // NOLINT
+
+  private:
+    std::vector<InitlistElem> m_values;  // NOLINT
+  };
+
+  class InitlistElem
+  {
+  public:
+    InitlistElem(std::string value)  // NOLINT
+        : m_value(std::move(value))
+    {
+    }
+
+    InitlistElem(std::string_view value)  // NOLINT
+        : m_value(std::in_place_type<std::string>, value)
+    {
+    }
+
+    InitlistElem(const char* value)  // NOLINT
+        : m_value(value)
+    {
+    }
+
+    InitlistElem(std::initializer_list<InitlistElem> list)  // NOLINT
+        : m_value(std::in_place_type<InitlistNode>, list)
+    {
+    }
+
+    InitlistElem(InitlistNode list)  // NOLINT
+        : m_value(std::move(list))
+    {
+    }
+
+    const auto& value() const { return m_value; }
+
+  private:
+    std::variant<std::string, InitlistNode> m_value;
+  };
+
+  // NOLINTBEGIN
+  Program& line_empty();
+  Program& line_value(s_t value);
+  Program& value(s_t value);
+
+  Program& string(s_t value);
+  Program& pragma(s_t value);
+  Program& include(s_t header);
+  Program& includeL(s_t header);
+
+  Program& comment(s_t value);
+  Program& multilineComment(l_t values);
+
+  Program& call(s_t func, l_t args);
+
+  Program& statement(s_t content);
+  Program& ret(s_t value);
+
+  Program& declaration(s_t type, s_t name, s_t value);
+
+  Program& require(s_t value);
+  Program& template_decl(l_t params);
+  Program& template_def(s_t var, l_t params);
+
+  Program& function_decl(s_t name, s_t ret, l_t params = {});
+
+  Program& function_open(s_t name, s_t ret, l_t params = {});
+
+  Program& function_open(s_t name, s_t ret, const std::vector<param_t>& params)
+  {
+    return function_open(
+        name,
+        ret,
+        std::vector<std::string>(std::begin(params), std::end(params)));
+  }
+  Program& function_close(s_t name);
+
+  Program& namespace_open(s_t name);
+  Program& namespace_close(s_t name);
+
+  Program& Initlist(const InitlistNode& node);
+
+  // NOLINTEND
 
 private:
-  std::vector<InitlistElem> m_values;  // NOLINT
+  static auto indent(std::size_t lvl) { return std::string(lvl * 2, ' '); }
+  std::string indent() const { return indent(m_indent); }
+
+  std::size_t m_indent = 0;
+
+  // function
+  std::string m_function_last;
+
+  // namespace
+  std::unordered_set<std::string> m_namespace_seen;
+  std::stack<std::string> m_namespace_stack;
+
+  // ost
+  std::ostream& m_ost;  // NOLINT
 };
 
-class InitlistElem
-{
-public:
-  InitlistElem(std::string value)  // NOLINT
-      : m_value(std::move(value))
-  {
-  }
-
-  InitlistElem(std::string_view value)  // NOLINT
-      : m_value(std::in_place_type<std::string>, value)
-  {
-  }
-
-  InitlistElem(const char* value)  // NOLINT
-      : m_value(value)
-  {
-  }
-
-  InitlistElem(std::initializer_list<InitlistElem> list)  // NOLINT
-      : m_value(std::in_place_type<Initlist>, list)
-  {
-  }
-
-  InitlistElem(Initlist list)  // NOLINT
-      : m_value(std::move(list))
-  {
-  }
-
-  const auto& value() const { return m_value; }
-
-private:
-  std::variant<std::string, Initlist> m_value;
-};
-
-inline Initlist::Initlist(std::initializer_list<InitlistElem> list)
+inline Program::InitlistNode::InitlistNode(
+    std::initializer_list<InitlistElem> list)
     : m_values(list)
 {
 }
 
 template<typename InputItr, typename UnaryFunc>
-Initlist::Initlist(InputItr first, InputItr last, UnaryFunc func)
+Program::InitlistNode::InitlistNode(InputItr first,
+                                    InputItr last,
+                                    UnaryFunc func)
 {
   m_values.reserve(last - first);
   std::for_each(
       first, last, [&](const auto& val) { m_values.emplace_back(func(val)); });
 }
-
-class Function
-{
-public:
-  std::string open(const std::string& name,
-                   const std::string& ret,
-                   const std::vector<std::string>& params = {});
-
-  std::string open(const std::string& name,
-                   const std::string& ret,
-                   const std::vector<param_t>& params)
-  {
-    return open(name,
-                ret,
-                std::vector<std::string>(std::begin(params), std::end(params)));
-  }
-
-  std::string close(const std::string& name);
-
-private:
-  std::string m_last;
-};
-
-class Namespace
-{
-public:
-  std::string open(const std::string& name);
-  std::string close(const std::string& name);
-
-private:
-  std::unordered_set<std::string> m_seen;
-  std::stack<std::string> m_stk;
-};
 
 }  // namespace cemplate
