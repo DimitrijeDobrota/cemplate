@@ -34,8 +34,7 @@ int main()
       .function_decl("decl", "void")
       .line_empty()
 
-      .line_value("static const test_class test = ")
-      .Initlist({"val11", "val12", {"val21", "val22"}, "val13"})
+      .declaration("static const test_class", "test", {"val11", "val12", {"val21", "val22"}, "val13"})
 
       .namespace_close("cemplate");
   // clang-format on

@@ -20,6 +20,11 @@ void warning(const std::string& message, const std::string& addition)  // NOLINT
 namespace cemplate
 {
 
+std::string string(const std::string& value)
+{
+  return std::format(R"("{}")", value);
+}
+
 Program& Program::line_empty()
 {
   m_ost << "\n";
@@ -40,7 +45,7 @@ Program& Program::value(s_t value)
 
 Program& Program::string(s_t value)
 {
-  m_ost << std::format(R"("{}")", value);
+  m_ost << ::cemplate::string(value);
   return *this;
 }
 
@@ -92,7 +97,7 @@ Program& Program::statement(s_t content)
 
 Program& Program::ret(s_t value)
 {
-  m_ost << std::format("{}m_ost << {};\n", indent(), value);
+  m_ost << std::format("{}return {};\n", indent(), value);
   return *this;
 }
 
@@ -102,9 +107,21 @@ Program& Program::declaration(s_t type, s_t name, s_t value)
   return *this;
 }
 
+Program& Program::declaration(s_t type, s_t name, i_t value)
+{
+  m_ost << std::format("{}{} {} = {{\n{}{}}};\n",
+                       indent(),
+                       type,
+                       name,
+                       value.format(m_indent + 1),
+                       indent());
+  return *this;
+}
+
 Program& Program::require(s_t value)
 {
-  m_ost << std::format("{}requires {}\n", indent(m_indent + 1), value);
+  m_ost << std::format(
+      "{}requires {}\n", ::cemplate::indent(m_indent + 1), value);
   return *this;
 }
 
@@ -132,7 +149,7 @@ Program& Program::function_decl(s_t name, s_t ret, l_t params)
   return *this;
 }
 
-std::string Program::InitlistNode::format(uint64_t lvl) const
+std::string InitlistNode::format(uint64_t lvl) const
 {
   const auto eval = []<typename T>(const T& val, std::uint64_t llvl)
   {
@@ -152,12 +169,6 @@ std::string Program::InitlistNode::format(uint64_t lvl) const
   }
 
   return res;
-}
-
-Program& Program::Initlist(const InitlistNode& node)
-{
-  m_ost << std::format("{{\n{}{}}}", node.format(m_indent + 1), indent());
-  return *this;
 }
 
 Program& Program::function_open(s_t name, s_t ret, l_t params)
