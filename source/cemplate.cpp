@@ -25,6 +25,18 @@ std::string string(const std::string& value)
   return std::format(R"("{}")", value);
 }
 
+std::string call(s_t func, l_t args)
+{
+  return std::format(
+      "{}({})", func, join(std::begin(args), std::end(args), ", "));
+}
+
+std::string template_def(s_t var, l_t params)
+{
+  return std::format(
+      "{}<{}>", var, join(std::begin(params), std::end(params), ", "));
+}
+
 Program& Program::line_empty()
 {
   m_ost << "\n";
@@ -40,12 +52,6 @@ Program& Program::line_value(s_t value)
 Program& Program::value(s_t value)
 {
   m_ost << value;
-  return *this;
-}
-
-Program& Program::string(s_t value)
-{
-  m_ost << ::cemplate::string(value);
   return *this;
 }
 
@@ -82,17 +88,16 @@ Program& Program::multilineComment(l_t values)
   return *this;
 }
 
-Program& Program::call(s_t func, l_t args)
+Program& Program::call(s_t func, s_t args)
 {
-  m_ost << std::format(
-      "{}({})", func, join(std::begin(args), std::end(args), ", "));
+  m_ost << std::format("{}{}({});\n", indent(), func, args);
   return *this;
 }
 
-Program& Program::statement(s_t content)
+Program& Program::call(s_t func, l_t args)
 {
-  m_ost << std::format("{}{};\n", indent(), content);
-  return *this;
+  const std::string val = join(std::begin(args), std::end(args), ", ");
+  return call(func, val);
 }
 
 Program& Program::ret(s_t value)
@@ -130,13 +135,6 @@ Program& Program::template_decl(l_t params)
   m_ost << std::format("{}template <{}>\n",
                        indent(),
                        join(std::begin(params), std::end(params), ", "));
-  return *this;
-}
-
-Program& Program::template_def(s_t var, l_t params)
-{
-  m_ost << std::format(
-      "{}<{}>", var, join(std::begin(params), std::end(params), ", "));
   return *this;
 }
 

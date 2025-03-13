@@ -123,7 +123,14 @@ static auto indent(std::size_t lvl)
   return std::string(lvl * 2, ' ');
 }
 
-std::string string(const std::string& value);
+using s_t = const std::string&;
+using l_t = const std::vector<std::string>&;
+using p_t = const std::vector<param_t>&;
+using i_t = const InitlistNode&;
+
+std::string string(s_t value);
+std::string call(s_t func, l_t args);
+std::string template_def(s_t var, l_t params);
 
 class Program
 {
@@ -133,17 +140,11 @@ public:
   {
   }
 
-  using s_t = const std::string&;
-  using l_t = const std::vector<std::string>&;
-  using p_t = const std::vector<param_t>&;
-  using i_t = const InitlistNode&;
-
   // NOLINTBEGIN
   Program& line_empty();
   Program& line_value(s_t value);
   Program& value(s_t value);
 
-  Program& string(s_t value);
   Program& pragma(s_t value);
   Program& include(s_t header);
   Program& includeL(s_t header);
@@ -152,8 +153,8 @@ public:
   Program& multilineComment(l_t values);
 
   Program& call(s_t func, l_t args);
+  Program& call(s_t func, s_t args);
 
-  Program& statement(s_t content);
   Program& ret(s_t value);
 
   Program& declaration(s_t type, s_t name, s_t value);
@@ -161,7 +162,6 @@ public:
 
   Program& require(s_t value);
   Program& template_decl(l_t params);
-  Program& template_def(s_t var, l_t params);
 
   Program& function_decl(s_t name, s_t ret, l_t params = {});
 
